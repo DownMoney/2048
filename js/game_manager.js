@@ -1,14 +1,17 @@
-function GameManager(size, InputManager, Actuator, ScoreManager) {
+function GameManager(size, InputManager, Actuator, ScoreManager, Player, socket) {
   this.size         = size; // Size of the grid
-  this.inputManager = new InputManager;
+  this.Player = Player;
+  console.log(Player);
+  this.socket = socket;
+  this.inputManager = new InputManager(socket);
   this.scoreManager = new ScoreManager;
-  this.actuator     = new Actuator;
-
+  this.actuator     = new Actuator(Player);
   this.startTiles   = 2;
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
 
+  
   this.setup();
 }
 
@@ -20,6 +23,7 @@ GameManager.prototype.restart = function () {
 
 // Set up the game
 GameManager.prototype.setup = function () {
+  var self = this;
   this.grid         = new Grid(this.size);
 
   this.score        = 0;
@@ -27,7 +31,39 @@ GameManager.prototype.setup = function () {
   this.won          = false;
 
   // Add the initial tiles
-  this.addStartTiles();
+  if(this.Player == 0)
+    this.addStartTiles();
+
+  
+  self.socket.on('tile', function(data){
+    console.log(data);
+    if(self.Player == 1)
+    {
+      
+      var tile = new Tile(data['cell'], data['value']);
+      
+      self.grid.insertTile(tile);
+   
+      
+      self.actuate();
+      
+    }
+  });
+
+   self.socket.on('itile', function(data){
+    console.log(data);
+    if(self.Player == 1)
+    {
+      
+      var tile = new Tile(data['cell'], data['value']);
+      
+      self.grid.insertTile(tile);
+   
+      
+      self.actuate();
+      
+    }
+  });
 
   // Update the actuator
   this.actuate();
@@ -42,11 +78,17 @@ GameManager.prototype.addStartTiles = function () {
 
 // Adds a tile in a random position
 GameManager.prototype.addRandomTile = function () {
+  var self = this;
   if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
-    var tile = new Tile(this.grid.randomAvailableCell(), value);
+    if (self.Player == 0)
+    {
+      var value = Math.random() < 0.9 ? 2 : 4;
+      var cell =this.grid.randomAvailableCell();
+      var tile = new Tile(cell, value);
 
-    this.grid.insertTile(tile);
+      this.grid.insertTile(tile);
+      setTimeout(function(){self.socket.emit('tile', {value: value, cell: cell});}, 000);
+    }
   }
 };
 
@@ -141,7 +183,7 @@ GameManager.prototype.move = function (direction) {
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
     }
-
+    if(this.Player == 0)
     this.actuate();
   }
 };

@@ -1,7 +1,7 @@
-function KeyboardInputManager() {
+function KeyboardInputManager(socket) {
   this.events = {};
 
-  this.listen();
+  this.listen(socket);
 }
 
 KeyboardInputManager.prototype.on = function (event, callback) {
@@ -20,7 +20,7 @@ KeyboardInputManager.prototype.emit = function (event, data) {
   }
 };
 
-KeyboardInputManager.prototype.listen = function () {
+KeyboardInputManager.prototype.listen = function (socket) {
   var self = this;
 
   var map = {
@@ -43,18 +43,22 @@ KeyboardInputManager.prototype.listen = function () {
                     event.shiftKey;
     var mapped    = map[event.which];
 
+
     if (!modifiers) {
       if (mapped !== undefined) {
         event.preventDefault();
+        setTimeout(function(){
         self.emit("move", mapped);
+        socket.emit('move', {move: mapped});
+      },00);
       }
 
       if (event.which === 32) self.restart.bind(self)(event);
     }
   });
 
-  var retry = document.getElementsByClassName("retry-button")[0];
-  retry.addEventListener("click", this.restart.bind(this));
+  //var retry = document.getElementsByClassName("retry-button")[0];
+  //retry.addEventListener("click", this.restart.bind(this));
 
   // Listen to swipe events
   var touchStartClientX, touchStartClientY;
